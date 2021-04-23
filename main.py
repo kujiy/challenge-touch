@@ -60,7 +60,7 @@ def send_reply(driver_path, url):
         w.submit("confirm")
 
         # second page
-        # w.submit("send")
+        w.submit("send")
 
         w.close()
 
