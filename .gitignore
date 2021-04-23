@@ -1,0 +1,7 @@
+__pycache__
+raw*
+.env
+*.swp
+venv
+.idea
+*.png
