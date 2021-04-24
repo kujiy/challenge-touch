@@ -87,8 +87,8 @@ def send_reply(w, url):
         raise
 
 
-def create_web_driver(**kwargs):
-    return Web(kwargs)
+def create_web_driver(driver_path, headless=False):
+    return Web(driver_path, headless=headless)
 
 def start():
     c = Challenge()
