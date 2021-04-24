@@ -90,44 +90,54 @@ def send_reply(w, url):
 def create_web_driver(driver_path, headless=False):
     return Web(driver_path, headless=headless)
 
+def notify_fail(c, e):
+    c.line.post(message=f"failed: {type(e)} e {str(e)}")
+
 def start():
     c = Challenge()
 
-    # retrieve emails
-    mails = c.mailer.get(10)
-    print(f"--- received {len(mails)} mails  --------------- {datetime.datetime.now()}")
+    try:
+        # retrieve emails
+        mails = c.mailer.get(10)
+        print(f"--- received {len(mails)} mails  --------------- {datetime.datetime.now()}")
 
-    if os.environ.get('NO_NEWMAIL_NOTIFY') != 'True': # debug
+        if os.environ.get('NO_NEWMAIL_NOTIFY') != 'True': # debug
+            try:
+                notify_new_emails(mails)
+            except Exception as e:
+                print(
+                    f"notify new email failed: {type(e)} e {str(e)}\n{traceback.print_exc()}")
+
+        # urls = ["https://ouen-net.benesse.ne.jp/open/message/?p=9r6BTOAQ0Vt_XgjUnrJiIb5uFMVsVr3JiW-lYBlJZc3Okk-eoTmnrHuMvzNBXK3QDjvqbiQfLFgBMZVE0JFR5yM09jNMTmtWn1GlcXBsrBoaMZ-9z-0MosSBLSL_KkNX&utm_source=torikumi&utm_medium=email"]
+        urls = extract_ouen_urls(mails)
+        print(f" found {len(urls)} urls")
+
+        if len(urls) == 0:
+            return
+
+        w = create_web_driver(os.getenv('CHROME_DRIVER_PATH'), headless=True)
+        # w = Web(os.getenv('CHROME_DRIVER_PATH'))
+        sleep(3)
+
+        for url in urls:
+            try:
+                print(url)
+                choosen_items = send_reply(w, url)
+                if choosen_items is not None:
+                    message = create_notify(choosen_items)
+                    res = c.line.post_image_by_url(
+                        message=message, image_url=choosen_items['stamp'])
+                    print(res)
+            except Exception as e:
+                notify_fail(c, w, e)
+        w.close()
+    except Exception as e:
+        notify_fail(c, e)
         try:
-            notify_new_emails(mails)
-        except Exception as e:
-            print(
-                f"notify new email failed: {type(e)} e {str(e)}\n{traceback.print_exc()}")
-
-    # urls = ["https://ouen-net.benesse.ne.jp/open/message/?p=9r6BTOAQ0Vt_XgjUnrJiIb5uFMVsVr3JiW-lYBlJZc3Okk-eoTmnrHuMvzNBXK3QDjvqbiQfLFgBMZVE0JFR5yM09jNMTmtWn1GlcXBsrBoaMZ-9z-0MosSBLSL_KkNX&utm_source=torikumi&utm_medium=email"]
-    urls = extract_ouen_urls(mails)
-    print(f" found {len(urls)} urls")
-    if len(urls) == 0:
-        return
-
-    w = create_web_driver(os.getenv('CHROME_DRIVER_PATH'), headless=True)
-    # w = Web(os.getenv('CHROME_DRIVER_PATH'))
-    sleep(3)
-
-    for url in urls:
-        try:
-            print(url)
-            choosen_items = send_reply(w, url)
-            if choosen_items is not None:
-                message = create_notify(choosen_items)
-                res = c.line.post_image_by_url(
-                    message=message, image_url=choosen_items['stamp'])
-                print(res)
-        except Exception as e:
-            c.line.post(
-                message=f"failed: {type(e)} e {str(e)}")
             w.close()
-    w.close()
+        except:
+            pass
+        raise e
 
 def create_notify(item):
 
