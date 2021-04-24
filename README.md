@@ -25,7 +25,8 @@
     1. ChromeDriverのパスはフルパスで
 1. install
     1. ```
-        git clone ~~~
+        git clone https://github.com/kujiy/challenge-touch.git
+        cd challenge-touch
         python3 - m venv venv
         . venv/bin/activate
         pip install - r requirements.txt
