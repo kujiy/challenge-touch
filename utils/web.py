@@ -4,6 +4,7 @@ from selenium.webdriver.support.ui import Select
 
 from selenium.webdriver.chrome.options import Options
 
+
 class Web:
 
     def __init__(self, driver_path, headless=False):

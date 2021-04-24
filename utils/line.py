@@ -4,6 +4,7 @@ import os
 import requests
 import io
 
+
 class Line:
     def __init__(self, *, token):
         self.url = "https://notify-api.line.me/api/notify"
