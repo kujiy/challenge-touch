@@ -25,13 +25,17 @@
     1. ChromeDriverのパスはフルパスで
 1. install
     1. ```
-        git clone ~~~
+        git clone https://github.com/kujiy/challenge-touch.git
+        cd challenge-touch
         python3 - m venv venv
         . venv/bin/activate
         pip install - r requirements.txt
         python main.py
         ```
 1. cronで定期実行する
+    2. ```
+       * * * * * <path_to>/challenge-touch/venv/bin/python <path_to>/challenge-touch/main.py 2>&1 >> /tmp/challenge-touch.log
+       ```
 
 
 # 注意点
