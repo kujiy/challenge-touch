@@ -4,9 +4,7 @@ chardet==4.0.0
 idna==2.10
 importlib-metadata==4.0.1
 iniconfig==1.1.1
-linenotipy==1.0.4
 packaging==20.9
-Pillow==8.2.0
 pluggy==0.13.1
 py==1.10.0
 pyparsing==2.4.7
