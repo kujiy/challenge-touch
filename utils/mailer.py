@@ -15,17 +15,13 @@ class Mailer():
             kargs.get("port", 993),
         )
 
-    def receive(self, limit=10):
-        return self.imapper.unseen(limit, include_raw=True)
-
     def get(self, limit):
-        mails = self.receive(limit)
-        dict_mails = self.extract_mail_loop(mails)
-        return self.order_by_date_asc(dict_mails)
+        mails = self.imapper.listup(limit, include_raw=True)
+        return self.order_by_date_asc(mails)
 
     # because imap does not support sort officially.
     def order_by_date_asc(self, mails):
-        return sorted(mails, key=lambda k: k['date'])
+        return sorted(mails, key=lambda k: k.date)
 
     def _parse_date(self, date_str):
 
