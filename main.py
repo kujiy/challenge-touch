@@ -1,8 +1,10 @@
+import datetime
 import os
 import sys
 import re
 import traceback
 import base64
+import random
 from time import sleep
 
 import selenium
@@ -25,11 +27,11 @@ line = Line(token=os.getenv("LINE_TOKEN"))
 def notify_new_emails(mails):
     for mail in mails:
         print(mail.title)
-        if len(mail["attachments"]) > 0:
+        if len(mail.attachments) > 0:
             early_lines = os.linesep.join(mail.body.split(os.linesep)[:8])
             res = line.post(message=early_lines)
             print(res)
-            for attachment in mail["attachments"]:
+            for attachment in mail.attachments:
                 # attachment = (filename, data, content_type)
                 res = line.post_raw_image(
                     message=attachment[0], raw_image=attachment[1])
@@ -48,26 +50,24 @@ def extract_ouen_urls(mails):
     return urls
 
 
-def send_reply(driver_path, url):
+def send_reply(w, url):
     try:
         # first page
-        # w = Web(driver_path, headless=True)
-        w = Web(driver_path)
-        sleep(3)
         w.open(url)
         sleep(3)
-        if w.has_replied():
+        if w.has_limited():
+            print('already replied.')
             return
 
         try:
             # modal version
-            text = w.choose_message("messageTemplate", 1)
+            text = w.choose_message("messageTemplate", random.randint(1,4))
             w.click_element("ouenmessage__selectStamp")
-            stamp = w.choose_stamp_in_modal("stampModalList")
+            stamp = w.choose_stamp_in_modal("stampModalList", random.randint(1,4))
         except:
             # flat page version
-            text = w.choose_message("selectKaniComment", 1)
-            stamp = w.choose_stamp_in_radio("iconImage")
+            text = w.choose_message("selectKaniComment", random.randint(1,4))
+            stamp = w.choose_stamp_in_radio("iconImage", random.randint(1,4))
 
         sleep(1)
         w.submit("confirm")
@@ -75,38 +75,45 @@ def send_reply(driver_path, url):
         # second page
         w.submit("send")
         sleep(1)
-        w.close()
 
         return {"text": text, "stamp": stamp}
     except selenium.common.exceptions.NoSuchElementException:
         pass
     except:
-        w.close()
         res = line.post(message=f"challenge failed: {url}")
         print(res)
         raise
 
 
+def create_web_driver(**kwargs):
+    return Web(kwargs)
+
 def start():
     # retrieve emails
-    mails = mailer.get(3)
-    print(f"received {len(mails)} mails")
+    mails = mailer.get(10)
+    print(f"--- received {len(mails)} mails  --------------- {datetime.datetime.now()}")
 
-    if 1:
+    if os.environ.get('NO_NEWMAIL_NOTIFY') != 'True': # debug
         try:
             notify_new_emails(mails)
         except Exception as e:
             print(
                 f"notify new email failed: {type(e)} e {str(e)}\n{traceback.print_exc()}")
 
-    urls = extract_ouen_urls(mails)
-
-    print(f"found {len(urls)} urls")
     # urls = ["https://ouen-net.benesse.ne.jp/open/message/?p=9r6BTOAQ0Vt_XgjUnrJiIb5uFMVsVr3JiW-lYBlJZc3Okk-eoTmnrHuMvzNBXK3QDjvqbiQfLFgBMZVE0JFR5yM09jNMTmtWn1GlcXBsrBoaMZ-9z-0MosSBLSL_KkNX&utm_source=torikumi&utm_medium=email"]
+    urls = extract_ouen_urls(mails)
+    print(f" found {len(urls)} urls")
+    if len(urls) == 0:
+        return
+
+    w = create_web_driver(os.getenv('CHROME_DRIVER_PATH'), headless=True)
+    # w = Web(os.getenv('CHROME_DRIVER_PATH'))
+    sleep(3)
+
     for url in urls:
         try:
             print(url)
-            choosen_items = send_reply(os.getenv('CHROME_DRIVER_PATH'), url)
+            choosen_items = send_reply(w, url)
             if choosen_items is not None:
                 message = create_notify(choosen_items)
                 res = line.post_image_by_url(
@@ -115,7 +122,8 @@ def start():
         except Exception as e:
             line.post(
                 message=f"failed: {type(e)} e {str(e)}")
-
+            w.close()
+    w.close()
 
 def create_notify(item):
 

@@ -16,7 +16,7 @@ class Mailer():
         )
 
     def get(self, limit):
-        mails = self.imapper.listup(limit, include_raw=True)
+        mails = self.imapper.unseen(limit, include_raw=True)
         return self.order_by_date_asc(mails)
 
     # because imap does not support sort officially.

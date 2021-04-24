@@ -15,8 +15,8 @@ class Web:
     def open(self, url):
         self.driver.get(url)
 
-    def has_replied(self):
-        return re.match(r'.*(返信済み|送信済み).*', self.driver.page_source, re.S)
+    def has_limited(self):
+        return re.match(r'.*(返信済み|送信済み|セキュリティの制限).*', self.driver.page_source, re.S)
 
     def choose_message(self, name, option_index):
         select = Select(self.driver.find_element_by_name(name))
@@ -26,14 +26,17 @@ class Web:
     def click_element(self, class_name):
         self.driver.find_element_by_class_name(class_name).click()
 
-    def choose_stamp_in_modal(self, ul_class_name):
+    def choose_stamp_in_modal(self, ul_class_name, index):
         ul = self.driver.find_element_by_class_name(ul_class_name)
         lis = ul.find_elements_by_tag_name("li")
-        for li in lis:
+        for i, li in enumerate(lis):
+            if i != index:
+                continue
             li.click()
             return li.get_attribute("src")
 
-    def choose_stamp_in_radio(self, radio_name):
+    def choose_stamp_in_radio(self, radio_name, index):
+        # TODO: choose Nth radio
         radio = self.driver.find_element_by_name(radio_name)
         parrent = radio.find_element_by_xpath('..')
         label = parrent.find_element_by_tag_name('label')

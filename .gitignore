@@ -5,3 +5,4 @@ raw*
 venv
 .idea
 *.png
+.pytest_cache
