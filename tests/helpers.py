@@ -24,6 +24,7 @@ mail_obj = MockMailObj()
 @pytest.fixture(autouse=True)
 def mocked_object(mocker):
     class MockObject(object):
+        mail_connect_mock = mocker.patch.object(Mailer, 'connect', return_value=True)
         mail_mock = mocker.patch.object(Mailer, 'get', return_value=[mail_obj])
         notify_new_emails_mock = mocker.patch('main.notify_new_emails', return_value=True)
         send_reply_mock = mocker.patch('main.send_reply', return_value={'text':'sent','stamp':'stamp'})

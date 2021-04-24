@@ -5,15 +5,18 @@ import datetime
 
 class Mailer():
 
-    def __init__(self, **kargs):
+    def __init__(self, *args, **kwargs):
+        self.connect(**kwargs)
+
+    def connect(self, **kwargs):
         self.imapper = connect(
-            kargs.get("host"),
-            kargs.get("user"),
-            kargs.get("pw"),
-            kargs.get("mailbox"),
-            kargs.get("timeout", 15),
-            kargs.get("ssl", True),
-            kargs.get("port", 993),
+            kwargs.get("host"),
+            kwargs.get("user"),
+            kwargs.get("pw"),
+            kwargs.get("mailbox"),
+            kwargs.get("timeout", 15),
+            kwargs.get("ssl", True),
+            kwargs.get("port", 993),
         )
 
     def get(self, limit):

@@ -15,13 +15,15 @@ from utils.mailer import Mailer
 from dotenv import load_dotenv
 load_dotenv()
 
-mailer = Mailer(
-    host=os.getenv("MAIL_HOST"),
-    user=os.getenv("MAIL_USER"),
-    pw=os.getenv("MAIL_PASSWORD"),
-    mailbox=os.getenv("MAIL_BOX")
-)
-line = Line(token=os.getenv("LINE_TOKEN"))
+class Challenge:
+    def __init__(self):
+        self.mailer = Mailer(
+            host=os.getenv("MAIL_HOST", 'test'),
+            user=os.getenv("MAIL_USER", 'test'),
+            pw=os.getenv("MAIL_PASSWORD", 'test'),
+            mailbox=os.getenv("MAIL_BOX", 'test')
+        )
+        self.line = Line(token=os.getenv("LINE_TOKEN", 'test'))
 
 
 def notify_new_emails(mails):
@@ -29,11 +31,11 @@ def notify_new_emails(mails):
         print(mail.title)
         if len(mail.attachments) > 0:
             early_lines = os.linesep.join(mail.body.split(os.linesep)[:8])
-            res = line.post(message=early_lines)
+            res = c.line.post(message=early_lines)
             print(res)
             for attachment in mail.attachments:
                 # attachment = (filename, data, content_type)
-                res = line.post_raw_image(
+                res = c.line.post_raw_image(
                     message=attachment[0], raw_image=attachment[1])
                 # print(res)
 
@@ -80,7 +82,7 @@ def send_reply(w, url):
     except selenium.common.exceptions.NoSuchElementException:
         pass
     except:
-        res = line.post(message=f"challenge failed: {url}")
+        res = c.line.post(message=f"challenge failed: {url}")
         print(res)
         raise
 
@@ -89,8 +91,10 @@ def create_web_driver(**kwargs):
     return Web(kwargs)
 
 def start():
+    c = Challenge()
+
     # retrieve emails
-    mails = mailer.get(10)
+    mails = c.mailer.get(10)
     print(f"--- received {len(mails)} mails  --------------- {datetime.datetime.now()}")
 
     if os.environ.get('NO_NEWMAIL_NOTIFY') != 'True': # debug
@@ -116,11 +120,11 @@ def start():
             choosen_items = send_reply(w, url)
             if choosen_items is not None:
                 message = create_notify(choosen_items)
-                res = line.post_image_by_url(
+                res = c.line.post_image_by_url(
                     message=message, image_url=choosen_items['stamp'])
                 print(res)
         except Exception as e:
-            line.post(
+            c.line.post(
                 message=f"failed: {type(e)} e {str(e)}")
             w.close()
     w.close()
