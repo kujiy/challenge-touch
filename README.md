@@ -41,3 +41,6 @@ I edited and included several files of the repos below.
 
 - https://github.com/10mohi6/line-notify-python/
 - https://github.com/keitaoouchi/easyimap/
+
+Selenium周りはこちらを参考にさせてもらいました。ありがとうございました。
+https://ai-inter1.com/python-selenium/
