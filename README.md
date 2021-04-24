@@ -33,6 +33,9 @@
         python main.py
         ```
 1. cronで定期実行する
+    2. ```
+       * * * * * <path_to>/challenge-touch/venv/bin/python <path_to>/challenge-touch/main.py 2>&1 >> /tmp/challenge-touch.log
+       ```
 
 
 # 注意点
