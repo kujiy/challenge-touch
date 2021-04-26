@@ -25,7 +25,12 @@ class Web:
         return select.options[option_index].text
 
     def click_element(self, class_name):
-        self.driver.find_element_by_class_name(class_name).click()
+        try:
+            self.driver.find_element_by_class_name(class_name).click()
+        except:
+            # div > a
+            self.driver.find_element_by_class_name(class_name).find_element_by_tag_name('a').click()
+
 
     def choose_stamp_in_modal(self, ul_class_name, index):
         ul = self.driver.find_element_by_class_name(ul_class_name)

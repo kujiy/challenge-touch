@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 import sys
 import re
@@ -52,7 +53,7 @@ def extract_ouen_urls(mails):
     return urls
 
 
-def send_reply(w, url):
+def send_reply(c, w, url):
     try:
         # first page
         w.open(url)
@@ -64,11 +65,14 @@ def send_reply(w, url):
         try:
             # modal version
             text = w.choose_message("messageTemplate", random.randint(1,4))
+            sleep(1)
             w.click_element("ouenmessage__selectStamp")
+            sleep(3)
             stamp = w.choose_stamp_in_modal("stampModalList", random.randint(1,4))
         except:
             # flat page version
             text = w.choose_message("selectKaniComment", random.randint(1,4))
+            sleep(1)
             stamp = w.choose_stamp_in_radio("iconImage", random.randint(1,4))
 
         sleep(1)
@@ -82,8 +86,6 @@ def send_reply(w, url):
     except selenium.common.exceptions.NoSuchElementException:
         pass
     except:
-        res = c.line.post(message=f"challenge failed: {url}")
-        print(res)
         raise
 
 
@@ -91,7 +93,7 @@ def create_web_driver(driver_path, headless=False):
     return Web(driver_path, headless=headless)
 
 def notify_fail(c, e):
-    c.line.post(message=f"failed: {type(e)} e {str(e)}")
+    c.line.post(message=f"failed: {type(e)} e {str(e)} {json.dumps(c)}")
 
 def start():
     c = Challenge()
@@ -115,21 +117,22 @@ def start():
         if len(urls) == 0:
             return
 
-        w = create_web_driver(os.getenv('CHROME_DRIVER_PATH'), headless=True)
+        headless = False if os.getenv('CHROME_DRIVER_HEADLESS', None) == 'False' else True
+        w = create_web_driver(os.getenv('CHROME_DRIVER_PATH'), headless=headless)
         # w = Web(os.getenv('CHROME_DRIVER_PATH'))
         sleep(3)
 
         for url in urls:
             try:
                 print(url)
-                choosen_items = send_reply(w, url)
+                choosen_items = send_reply(c, w, url)
                 if choosen_items is not None:
                     message = create_notify(choosen_items)
                     res = c.line.post_image_by_url(
                         message=message, image_url=choosen_items['stamp'])
                     print(res)
-            except Exception as e:
-                notify_fail(c, w, e)
+            except:
+                raise
         w.close()
     except Exception as e:
         notify_fail(c, e)
