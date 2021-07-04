@@ -10,11 +10,17 @@ from time import sleep
 
 class Web:
 
-    def __init__(self, driver_path, headless=False):
+    def __init__(self, driver_path: str, headless: bool = False):
         options = Options()
         if headless:
             options.add_argument('--headless')
         self.driver = webdriver.Chrome(driver_path, options=options)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        self.close()
 
     def open(self, url):
         self.driver.get(url)

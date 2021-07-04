@@ -12,7 +12,9 @@ class MockMailObj:
     attachments = []
 
 class MockWebDriver:
-    def close(self):
+    def __enter__(self):
+        return self
+    def __exit__(self, exception_type, exception_value, traceback):
         pass
 
 line_response = Mock(spec=Response)
