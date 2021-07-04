@@ -46,10 +46,19 @@ def extract_ouen_urls(mails):
     for mail in mails:
         print(mail.title)
         # https://ouen-net.benesse.ne.jp/open/message?p=9r6BTOAQ0Vt_XgjUnrJiIShDgXAT0p5SKgHSOjRy-h78P8KTBlJ7hNmE9frLt28-W8BF64olvDr7sPmhlPB1n-2fLO1_fFkGsf9KUk8P5FvqHyeaa6ohd4t53-pH_qf3&utm_source=torikumi&utm_medium=email
-        m = re.findall(
-            r'(https://ouen-net.benesse.ne.jp/open/(hato|message).+?)\r?\n', mail.body)
-        if len(m) > 0:
-            urls.append(m[0][0])
+        m = re.search(
+            r'(?P<url>https://ouen-net.benesse.ne.jp/open/(?P<_type>hato|message).+?)[\'"]', mail.body)
+        e = re.search(
+            r'(?P<url>https://mail-t.benesse.ne.jp/.+?\?.+?)[\'"]', mail.body)
+        g = re.search(
+            r'(?P<url>https://ce.benesse.ne.jp/member/Goodjob.*?)[\'"]', mail.body)
+        if m and "url" in m.groupdict():
+            urls.append(m.group('url'))
+        if e and "url" in e.groupdict():
+            urls.append(e.group('url'))
+        if g and "url" in g.groupdict():
+            urls.append(g.group('url'))
+
     return urls
 
 
@@ -57,30 +66,34 @@ def send_reply(c, w, url):
     try:
         # first page
         w.open(url)
-        sleep(3)
+        w.login()
         if w.has_limited():
             print('already replied.')
             return
 
-        try:
-            # modal version
-            text = w.choose_message("messageTemplate", random.randint(1,4))
-            sleep(1)
-            w.click_element("ouenmessage__selectStamp")
-            sleep(3)
-            stamp = w.choose_stamp_in_modal("stampModalList", random.randint(1,4))
-        except:
-            # flat page version
-            text = w.choose_message("selectKaniComment", random.randint(1,4))
-            sleep(1)
-            stamp = w.choose_stamp_in_radio("iconImage", random.randint(1,4))
+        if w.exists_id('GoodjobIndex'):
+            # challeng english - https://ce.benesse.ne.jp/member/Goodjob
+            text = w.choose_message("template_id", random.randint(1,8))
+            stamp = w.choose_stamp_in_radio("stamp_id", random.randint(1,4))
+            # open the confirm page
+            w.click_class_input('bottomBtn')
+            # submit on the confirm page
+            w.click_class_input('bottomBtn')
+        else:
+            # challenge touch
+            try:
+                # modal version
+                text = w.choose_message("messageTemplate", random.randint(1,4))
+                w.click_element("ouenmessage__selectStamp")
+                stamp = w.choose_stamp_in_modal("stampModalList", random.randint(1,4))
+            except:
+                # flat page version
+                text = w.choose_message("selectKaniComment", random.randint(1,4))
+                stamp = w.choose_stamp_in_radio("iconImage", random.randint(1,4))
 
-        sleep(1)
-        w.submit("confirm")
-        sleep(2)
-        # second page
-        w.submit("send")
-        sleep(1)
+            w.submit("confirm")
+            # second page
+            w.submit("send")
 
         return {"text": text, "stamp": stamp}
     except selenium.common.exceptions.NoSuchElementException:
@@ -93,7 +106,7 @@ def create_web_driver(driver_path, headless=False):
     return Web(driver_path, headless=headless)
 
 def notify_fail(c, e):
-    c.line.post(message=f"failed: {type(e)} e {str(e)} {json.dumps(c)}")
+    c.line.post(message=f"failed: {type(e)} e {str(e)} {json.dumps(c)} {sys.exc_info()} {traceback.print_stack()}")
 
 def start():
     c = Challenge()
@@ -112,6 +125,7 @@ def start():
 
         # urls = ["https://ouen-net.benesse.ne.jp/open/message/?p=9r6BTOAQ0Vt_XgjUnrJiIb5uFMVsVr3JiW-lYBlJZc3Okk-eoTmnrHuMvzNBXK3QDjvqbiQfLFgBMZVE0JFR5yM09jNMTmtWn1GlcXBsrBoaMZ-9z-0MosSBLSL_KkNX&utm_source=torikumi&utm_medium=email"]
         urls = extract_ouen_urls(mails)
+        #urls = ['https://ce.benesse.ne.jp/member/Goodjob']
         print(f" found {len(urls)} urls")
 
         if len(urls) == 0:
@@ -122,11 +136,12 @@ def start():
         # w = Web(os.getenv('CHROME_DRIVER_PATH'))
         sleep(3)
 
+        #urls = ['https://ce.benesse.ne.jp/member/Goodjob']
         for url in urls:
             try:
                 print(url)
                 choosen_items = send_reply(c, w, url)
-                if choosen_items is not None:
+                if choosen_items:
                     message = create_notify(choosen_items)
                     res = c.line.post_image_by_url(
                         message=message, image_url=choosen_items['stamp'])

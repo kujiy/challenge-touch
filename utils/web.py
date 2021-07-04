@@ -1,8 +1,11 @@
+import os
 import re
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import Select
 
 from selenium.webdriver.chrome.options import Options
+from time import sleep
 
 
 class Web:
@@ -15,18 +18,31 @@ class Web:
 
     def open(self, url):
         self.driver.get(url)
+        sleep(3)
 
     def has_limited(self):
         return re.match(r'.*(返信済み|送信済み|セキュリティの制限).*', self.driver.page_source, re.S)
 
+    def login(self):
+        if self.exists_name('usr_password'):
+            self.driver.find_element_by_name('usr_name').send_keys(os.getenv('LOGIN_ID'))
+            self.driver.find_element_by_name('usr_password').send_keys(os.getenv('LOGIN_PW'))
+            if self.exists_id('loginButton'):
+                self.driver.find_element_by_id('loginButton').click()
+            else:
+                self.driver.find_element_by_class_name('sendBtn').find_element_by_tag_name('input').click()
+            sleep(3)
+
     def choose_message(self, name, option_index):
         select = Select(self.driver.find_element_by_name(name))
         select.select_by_index(option_index)
+        sleep(1)
         return select.options[option_index].text
 
     def click_element(self, class_name):
         try:
             self.driver.find_element_by_class_name(class_name).click()
+            sleep(3)
         except:
             # div > a
             self.driver.find_element_by_class_name(
@@ -47,10 +63,16 @@ class Web:
         parrent = radio.find_element_by_xpath('..')
         label = parrent.find_element_by_tag_name('label')
         label.click()
+        sleep(1)
         return parrent.find_element_by_tag_name('img').get_attribute('src')
+
+    def click_class_input(self, class_name):
+        self.driver.find_element_by_class_name(class_name).find_element_by_tag_name('input').click()
+        sleep(2)
 
     def submit(self, name):
         self.driver.find_element_by_name(name).click()
+        sleep(2)
 
     def close(self):
         try:
@@ -58,6 +80,19 @@ class Web:
         except:
             pass
 
+    def exists_id(self, id_name):
+        try:
+            self.driver.find_element_by_id(id_name)
+        except NoSuchElementException:
+            return False
+        return True
+
+    def exists_name(self, name):
+        try:
+            self.driver.find_element_by_name(name)
+        except NoSuchElementException:
+            return False
+        return True
 
 if __name__ == "__main__":
     try:
