@@ -137,22 +137,23 @@ def start():
             return
 
         headless = False if os.getenv('CHROME_DRIVER_HEADLESS', None) == 'False' else True
-        w: Web = create_web_driver(os.getenv('CHROME_DRIVER_PATH'), headless=headless)
-        # w = Web(os.getenv('CHROME_DRIVER_PATH'))
-        sleep(3)
+        try:
+            w: Web = create_web_driver(os.getenv('CHROME_DRIVER_PATH'), headless=headless)
+            # w = Web(os.getenv('CHROME_DRIVER_PATH'))
+            sleep(3)
 
-        for url in urls:
-            logger.info(url)
-            choosen_items: ReplyModel = send_reply(c, w, url)
-            if choosen_items:
-                message = create_notify(choosen_items)
-                res = c.line.post_image_by_url(
-                    message=message, image_url=choosen_items.stamp)
-                logger.info(res)
+            for url in urls:
+                logger.info(url)
+                choosen_items: ReplyModel = send_reply(c, w, url)
+                if choosen_items:
+                    message = create_notify(choosen_items)
+                    res = c.line.post_image_by_url(
+                        message=message, image_url=choosen_items.stamp)
+                    logger.info(res)
+        finally:
+            w.close()
     except Exception as e:
         notify_fail(c, e)
-    finally:
-        w.close()
 
 def create_notify(item: ReplyModel) -> str:
 
