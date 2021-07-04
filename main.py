@@ -7,12 +7,15 @@ import traceback
 import base64
 import random
 from time import sleep
+from typing import Optional
 
 import selenium
+from pydantic import BaseModel
 
 from utils.web import Web
 from utils.line import Line
 from utils.mailer import Mailer
+from utils.logger import logger
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -29,22 +32,22 @@ class Challenge:
 
 def notify_new_emails(mails):
     for mail in mails:
-        print(mail.title)
+        logger.info(mail.title)
         if len(mail.attachments) > 0:
             early_lines = os.linesep.join(mail.body.split(os.linesep)[:8])
             res = c.line.post(message=early_lines)
-            print(res)
+            logger.info(res)
             for attachment in mail.attachments:
                 # attachment = (filename, data, content_type)
                 res = c.line.post_raw_image(
                     message=attachment[0], raw_image=attachment[1])
-                # print(res)
+                # logger.info(res)
 
 
 def extract_ouen_urls(mails):
     urls = []
     for mail in mails:
-        print(mail.title)
+        logger.info(mail.title)
         # https://ouen-net.benesse.ne.jp/open/message?p=9r6BTOAQ0Vt_XgjUnrJiIShDgXAT0p5SKgHSOjRy-h78P8KTBlJ7hNmE9frLt28-W8BF64olvDr7sPmhlPB1n-2fLO1_fFkGsf9KUk8P5FvqHyeaa6ohd4t53-pH_qf3&utm_source=torikumi&utm_medium=email
         m = re.search(
             r'(?P<url>https://ouen-net.benesse.ne.jp/open/(?P<_type>hato|message).+?)[\'"]', mail.body)
@@ -61,14 +64,17 @@ def extract_ouen_urls(mails):
 
     return urls
 
+class ReplyModel(BaseModel):
+    text: str
+    stamp: Optional[str]
 
-def send_reply(c, w, url):
+def send_reply(c: Challenge, w: Web, url: str) -> ReplyModel:
     try:
         # first page
         w.open(url)
         w.login()
         if w.has_limited():
-            print('already replied.')
+            logger.info('already replied.')
             return
 
         if w.exists_id('GoodjobIndex'):
@@ -81,12 +87,12 @@ def send_reply(c, w, url):
             w.click_class_input('bottomBtn')
         else:
             # challenge touch
-            try:
+            if w.exists_name('open_messageActionForm'):
                 # modal version
                 text = w.choose_message("messageTemplate", random.randint(1,4))
                 w.click_element("ouenmessage__selectStamp")
                 stamp = w.choose_stamp_in_modal("stampModalList", random.randint(1,4))
-            except:
+            else:
                 # flat page version
                 text = w.choose_message("selectKaniComment", random.randint(1,4))
                 stamp = w.choose_stamp_in_radio("iconImage", random.randint(1,4))
@@ -95,18 +101,16 @@ def send_reply(c, w, url):
             # second page
             w.submit("send")
 
-        return {"text": text, "stamp": stamp}
-    except selenium.common.exceptions.NoSuchElementException:
-        pass
-    except:
-        raise
+        return ReplyModel(text=text, stamp=stamp)
+    except selenium.common.exceptions.NoSuchElementException as e:
+        logger.error(sys.exc_info(), traceback.extract_stack())
 
 
-def create_web_driver(driver_path, headless=False):
+def create_web_driver(driver_path: str, headless: bool = False) -> Web:
     return Web(driver_path, headless=headless)
 
-def notify_fail(c, e):
-    c.line.post(message=f"failed: {type(e)} e {str(e)} {json.dumps(c)} {sys.exc_info()} {traceback.print_stack()}")
+def notify_fail(c: Challenge, e: Exception):
+    c.line.post(message=f"failed: {type(e)} e {str(e)} {json.dumps(c)} {sys.exc_info()} {traceback.extract_stack()}")
 
 def start():
     c = Challenge()
@@ -114,56 +118,49 @@ def start():
     try:
         # retrieve emails
         mails = c.mailer.get(10)
-        print(f"--- received {len(mails)} mails  --------------- {datetime.datetime.now()}")
+        logger.info(f"--- received {len(mails)} mails  --------------- {datetime.datetime.now()}")
 
         if os.environ.get('NO_NEWMAIL_NOTIFY') != 'True': # debug
             try:
                 notify_new_emails(mails)
             except Exception as e:
-                print(
+                logger.error(
                     f"notify new email failed: {type(e)} e {str(e)}\n{traceback.print_exc()}")
 
         # urls = ["https://ouen-net.benesse.ne.jp/open/message/?p=9r6BTOAQ0Vt_XgjUnrJiIb5uFMVsVr3JiW-lYBlJZc3Okk-eoTmnrHuMvzNBXK3QDjvqbiQfLFgBMZVE0JFR5yM09jNMTmtWn1GlcXBsrBoaMZ-9z-0MosSBLSL_KkNX&utm_source=torikumi&utm_medium=email"]
         urls = extract_ouen_urls(mails)
-        #urls = ['https://ce.benesse.ne.jp/member/Goodjob']
-        print(f" found {len(urls)} urls")
+        # urls = ['https://ce.benesse.ne.jp/member/Goodjob']
+        urls = ['https://ouen-net.benesse.ne.jp/open/message/?p=9r6BTOAQ0Vt_XgjUnrJiIbP1IxzjarCLsVz6zPgNMqZZaZg074zmkXvBhvmGYaSWYhHdMwBB_MzWYmNh9vEiTwychnUE6mPcSELfjCAtOtRgrjWaPbd0JmevMWQw2RFo&utm_source=torikumi&utm_medium=email']
+        logger.info(f" found {len(urls)} urls")
 
         if len(urls) == 0:
             return
 
         headless = False if os.getenv('CHROME_DRIVER_HEADLESS', None) == 'False' else True
-        w = create_web_driver(os.getenv('CHROME_DRIVER_PATH'), headless=headless)
+        w: Web = create_web_driver(os.getenv('CHROME_DRIVER_PATH'), headless=headless)
         # w = Web(os.getenv('CHROME_DRIVER_PATH'))
         sleep(3)
 
-        #urls = ['https://ce.benesse.ne.jp/member/Goodjob']
         for url in urls:
-            try:
-                print(url)
-                choosen_items = send_reply(c, w, url)
-                if choosen_items:
-                    message = create_notify(choosen_items)
-                    res = c.line.post_image_by_url(
-                        message=message, image_url=choosen_items['stamp'])
-                    print(res)
-            except:
-                raise
-        w.close()
+            logger.info(url)
+            choosen_items: ReplyModel = send_reply(c, w, url)
+            if choosen_items:
+                message = create_notify(choosen_items)
+                res = c.line.post_image_by_url(
+                    message=message, image_url=choosen_items.stamp)
+                logger.info(res)
     except Exception as e:
         notify_fail(c, e)
-        try:
-            w.close()
-        except:
-            pass
-        raise e
+    finally:
+        w.close()
 
-def create_notify(item):
+def create_notify(item: ReplyModel) -> str:
 
     return f"""
 メッセージありがとうございます！
 おへんじをおくったよ！
 
-{item['text']}
+{item.text}
 """
 
 

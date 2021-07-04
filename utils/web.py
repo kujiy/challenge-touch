@@ -21,7 +21,7 @@ class Web:
         sleep(3)
 
     def has_limited(self):
-        return re.match(r'.*(返信済み|送信済み|セキュリティの制限).*', self.driver.page_source, re.S)
+        return re.match(r'.*(返信済み|送信済み|セキュリティの制限|期限を過ぎて).*', self.driver.page_source, re.S)
 
     def login(self):
         if self.exists_name('usr_password'):
@@ -61,9 +61,15 @@ class Web:
         # TODO: choose Nth radio
         radio = self.driver.find_element_by_name(radio_name)
         parrent = radio.find_element_by_xpath('..')
-        label = parrent.find_element_by_tag_name('label')
-        label.click()
-        sleep(1)
+        if parrent.tag_name == 'label':
+            label = parrent
+            label.click()
+            parrent = label.find_element_by_xpath('..')
+            sleep(1)
+        else:
+            label = parrent.find_element_by_tag_name('label')
+            label.click()
+            sleep(1)
         return parrent.find_element_by_tag_name('img').get_attribute('src')
 
     def click_class_input(self, class_name):
