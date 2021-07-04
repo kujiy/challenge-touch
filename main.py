@@ -31,7 +31,7 @@ class Challenge:
         self.line = Line(token=os.getenv("LINE_TOKEN", 'test'))
 
 
-def notify_new_emails(c: Challenge, mails: list):
+def notify_new_emails(mails: list):
     mail: MailObj
     for mail in mails:
         logger.info(mail.title)
@@ -123,7 +123,7 @@ def start():
 
         if os.environ.get('NO_NEWMAIL_NOTIFY') != 'True': # debug
             try:
-                notify_new_emails(c, mails)
+                notify_new_emails(mails)
             except Exception as e:
                 logger.error(
                     f"notify new email failed: {type(e)} e {str(e)}\n{traceback.print_exc()}")
