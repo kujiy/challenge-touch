@@ -68,7 +68,7 @@ class ReplyModel(BaseModel):
     text: str
     stamp: Optional[str]
 
-def send_reply(c: Challenge, w: Web, url: str) -> ReplyModel:
+def send_reply(c: Challenge, w: Web, url: str) -> Optional[ReplyModel]:
     try:
         # first page
         w.open(url)
@@ -130,7 +130,7 @@ def start():
         # urls = ["https://ouen-net.benesse.ne.jp/open/message/?p=9r6BTOAQ0Vt_XgjUnrJiIb5uFMVsVr3JiW-lYBlJZc3Okk-eoTmnrHuMvzNBXK3QDjvqbiQfLFgBMZVE0JFR5yM09jNMTmtWn1GlcXBsrBoaMZ-9z-0MosSBLSL_KkNX&utm_source=torikumi&utm_medium=email"]
         urls = extract_ouen_urls(mails)
         # urls = ['https://ce.benesse.ne.jp/member/Goodjob']
-        urls = ['https://ouen-net.benesse.ne.jp/open/message/?p=9r6BTOAQ0Vt_XgjUnrJiIbP1IxzjarCLsVz6zPgNMqZZaZg074zmkXvBhvmGYaSWYhHdMwBB_MzWYmNh9vEiTwychnUE6mPcSELfjCAtOtRgrjWaPbd0JmevMWQw2RFo&utm_source=torikumi&utm_medium=email']
+        # urls = ['https://ouen-net.benesse.ne.jp/open/message/?p=9r6BTOAQ0Vt_XgjUnrJiIbP1IxzjarCLsVz6zPgNMqZZaZg074zmkXvBhvmGYaSWYhHdMwBB_MzWYmNh9vEiTwychnUE6mPcSELfjCAtOtRgrjWaPbd0JmevMWQw2RFo&utm_source=torikumi&utm_medium=email']
         logger.info(f" found {len(urls)} urls")
 
         if len(urls) == 0:
