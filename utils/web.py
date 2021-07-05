@@ -1,11 +1,15 @@
 import os
+import random
 import re
+
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import Select
 
 from selenium.webdriver.chrome.options import Options
 from time import sleep
+
+from utils.wisdom import get_wisdom_text
 
 
 class Web:
@@ -39,13 +43,24 @@ class Web:
                 self.driver.find_element_by_class_name('sendBtn').find_element_by_tag_name('input').click()
             sleep(3)
 
-    def choose_message(self, name, option_index):
+    def put_message(self, name: str) -> str:
         select = Select(self.driver.find_element_by_name(name))
+        option_index = random.randint(0,len(select.options) - 1)
         select.select_by_index(option_index)
         sleep(1)
+        # add a wisdom
+        if self.exists_name('free_message'):
+            self.driver.find_element_by_name('free_message').send_keys(f"""
+
+Today's Wisdom:
+
+{get_wisdom_text()}""")
+            sleep(1)
+            return self.driver.find_element_by_name('free_message').get_attribute('value')
+        sleep(0.5)
         return select.options[option_index].text
 
-    def click_element(self, class_name):
+    def click_element(self, class_name: str) -> None:
         try:
             self.driver.find_element_by_class_name(class_name).click()
             sleep(3)
@@ -54,7 +69,7 @@ class Web:
             self.driver.find_element_by_class_name(
                 class_name).find_element_by_tag_name('a').click()
 
-    def choose_stamp_in_modal(self, ul_class_name, index):
+    def choose_stamp_in_modal(self, ul_class_name: str, index: int) -> str:
         ul = self.driver.find_element_by_class_name(ul_class_name)
         lis = ul.find_elements_by_tag_name("li")
         for i, li in enumerate(lis):
@@ -63,12 +78,17 @@ class Web:
             li.click()
             return li.get_attribute("src")
 
-    def choose_stamp_in_radio(self, radio_name, index):
-        # TODO: choose Nth radio
-        radio = self.driver.find_element_by_name(radio_name)
+    def choose_stamp_in_radio(self, radio_name: str):
+        if self.exists_id('special'): # english
+            radios = self.driver.find_element_by_id('special').find_elements_by_name(radio_name)
+        else:
+            radios = self.driver.find_elements_by_name(radio_name)
+        index = random.randint(0, len(radios) - 1)
+        radio = radios[index]
         parrent = radio.find_element_by_xpath('..')
         if parrent.tag_name == 'label':
             label = parrent
+            sleep(1)
             label.click()
             parrent = label.find_element_by_xpath('..')
             sleep(1)
@@ -78,11 +98,11 @@ class Web:
             sleep(1)
         return parrent.find_element_by_tag_name('img').get_attribute('src')
 
-    def click_class_input(self, class_name):
+    def nested_submit(self, class_name: str):
         self.driver.find_element_by_class_name(class_name).find_element_by_tag_name('input').click()
         sleep(2)
 
-    def submit(self, name):
+    def submit(self, name: str):
         self.driver.find_element_by_name(name).click()
         sleep(2)
 
@@ -107,11 +127,7 @@ class Web:
         return True
 
 if __name__ == "__main__":
-    try:
-        w = Web()
-        a = w.first_page("https://www.google.com")
-        print(a)
-        w.close()
-    except:
-        w.close()
-        raise
+    w = Web()
+    a = w.first_page("https://www.google.com")
+    print(a)
+    w.close()

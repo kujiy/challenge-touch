@@ -1,6 +1,6 @@
 from main import start
 from utils.mailer import Mailer
-from helpers import *
+from tests.helpers import *
 
 
 def test_start_no_url(mocked_object):

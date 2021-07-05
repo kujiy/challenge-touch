@@ -9,6 +9,7 @@ pluggy
 py
 pyparsing
 pytest
+pytest_watch
 pytest-mock
 python-dotenv
 requests

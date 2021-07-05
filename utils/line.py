@@ -28,7 +28,7 @@ class Line:
             self.url, headers=self.headers, params=kwargs, files=files
         ).json()
 
-    def post_image_by_url(self, **kwargs):
+    def post_image_by_url(self, **kwargs) -> dict:
         image_url = kwargs.get("image_url", None)
         if image_url is not None:
             files = {"imageFile": self.retrieve_byte_image(image_url)}

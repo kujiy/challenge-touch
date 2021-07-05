@@ -1,5 +1,4 @@
 import datetime
-import json
 import os
 import sys
 import re
@@ -80,22 +79,22 @@ def send_reply(c: Challenge, w: Web, url: str) -> Optional[ReplyModel]:
 
         if w.exists_id('GoodjobIndex'):
             # challeng english - https://ce.benesse.ne.jp/member/Goodjob
-            text = w.choose_message("template_id", random.randint(1,8))
-            stamp = w.choose_stamp_in_radio("stamp_id", random.randint(1,4))
+            text = w.put_message("template_id")
+            stamp = w.choose_stamp_in_radio("stamp_id")
             # open the confirm page
-            w.click_class_input('bottomBtn')
+            w.nested_submit('bottomBtn')
             # submit on the confirm page
-            w.click_class_input('bottomBtn')
+            w.nested_submit('bottomBtn')
         else:
             # challenge touch
             if w.exists_name('open_messageActionForm'):
                 # modal version
-                text = w.choose_message("messageTemplate", random.randint(1,4))
+                text = w.put_message("messageTemplate")
                 w.click_element("ouenmessage__selectStamp")
                 stamp = w.choose_stamp_in_modal("stampModalList", random.randint(1,4))
             else:
                 # flat page version
-                text = w.choose_message("selectKaniComment", random.randint(1,4))
+                text = w.put_message("selectKaniComment")
                 stamp = w.choose_stamp_in_radio("iconImage", random.randint(1,4))
 
             w.submit("confirm")
@@ -111,7 +110,7 @@ def create_web_driver(headless: bool = False) -> Web:
     return Web(os.getenv('CHROME_DRIVER_PATH'), headless=headless)
 
 def notify_fail(c: Challenge, e: Exception):
-    c.line.post(message=f"failed: {type(e)} e {str(e)} {json.dumps(c)} {sys.exc_info()} {traceback.extract_stack()}")
+    c.line.post(message=f"failed: [{type(e)}] {str(e)} {sys.exc_info()} {traceback.extract_stack()}")
 
 def start():
     c = Challenge()
@@ -129,8 +128,8 @@ def start():
                     f"notify new email failed: {type(e)} e {str(e)}\n{traceback.print_exc()}")
 
         urls = extract_ouen_urls(mails)
-        # urls = ['https://ce.benesse.ne.jp/member/Goodjob']
         # urls = ['https://ouen-net.benesse.ne.jp/open/message/?p=9r6BTOAQ0Vt_XgjUnrJiIbP1IxzjarCLsVz6zPgNMqZZaZg074zmkXvBhvmGYaSWYhHdMwBB_MzWYmNh9vEiTwychnUE6mPcSELfjCAtOtRgrjWaPbd0JmevMWQw2RFo&utm_source=torikumi&utm_medium=email']
+        # urls = ['https://ce.benesse.ne.jp/member/Goodjob'] # english
         logger.info(f" found {len(urls)} urls")
 
         if len(urls) == 0:
@@ -145,11 +144,12 @@ def start():
                 choosen_items: ReplyModel = send_reply(c, w, url)
                 if choosen_items:
                     message: str = create_notify(choosen_items)
-                    res: json = c.line.post_image_by_url(
+                    res: dict = c.line.post_image_by_url(
                         message=message, image_url=choosen_items.stamp)
                     logger.info(res)
     except Exception as e:
         notify_fail(c, e)
+        raise
 
 def create_notify(item: ReplyModel) -> str:
 
