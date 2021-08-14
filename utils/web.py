@@ -30,8 +30,10 @@ class Web:
         self.driver.get(url)
         sleep(3)
 
+    def has_replied(self):
+        return re.match(r'.*(返信済み|送信済み).*', self.driver.page_source, re.S)
     def has_limited(self):
-        return re.match(r'.*(返信済み|送信済み|セキュリティの制限|期限を過ぎて).*', self.driver.page_source, re.S)
+        return re.match(r'.*(セキュリティの制限|期限を過ぎて).*', self.driver.page_source, re.S)
 
     def login(self):
         if self.exists_name('usr_password'):

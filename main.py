@@ -19,6 +19,13 @@ from utils.logger import logger
 from dotenv import load_dotenv
 load_dotenv()
 
+class NoFormError(Exception):
+    pass
+class ExpiredError(Exception):
+    pass
+class AlreadyRepliedError(Exception):
+    pass
+
 class Challenge:
     def __init__(self):
         self.mailer = Mailer(
@@ -30,7 +37,7 @@ class Challenge:
         self.line = Line(token=os.getenv("LINE_TOKEN", 'test'))
 
 
-def notify_new_emails(mails: list):
+def notify_new_emails(mails: list, c: Challenge):
     mail: MailObj
     for mail in mails:
         logger.info(mail.title)
@@ -74,6 +81,9 @@ def send_reply(c: Challenge, w: Web, url: str) -> Optional[ReplyModel]:
         w.open(url)
         w.login()
         if w.has_limited():
+            logger.info('already expired.')
+            return
+        if w.has_replied():
             logger.info('already replied.')
             return
 
@@ -92,10 +102,13 @@ def send_reply(c: Challenge, w: Web, url: str) -> Optional[ReplyModel]:
                 text = w.put_message("messageTemplate")
                 w.click_element("ouenmessage__selectStamp")
                 stamp = w.choose_stamp_in_modal("stampModalList", random.randint(1,4))
-            else:
+            elif w.exists_name("selectKaniComment"):
                 # flat page version
                 text = w.put_message("selectKaniComment")
                 stamp = w.choose_stamp_in_radio("iconImage", random.randint(1,4))
+            else:
+                # no form exists OR a new form is found.
+                raise NoFormError(f'no form exists OR a new form is found on {url}')
 
             w.submit("confirm")
             # second page
@@ -122,7 +135,7 @@ def start():
 
         if os.environ.get('NO_NEWMAIL_NOTIFY') != 'True': # debug
             try:
-                notify_new_emails(mails)
+                notify_new_emails(mails, c)
             except Exception as e:
                 logger.error(
                     f"notify new email failed: {type(e)} e {str(e)}\n{traceback.print_exc()}")
@@ -141,12 +154,20 @@ def start():
 
             for url in urls:
                 logger.info(url)
-                choosen_items: ReplyModel = send_reply(c, w, url)
-                if choosen_items:
-                    message: str = create_notify(choosen_items)
-                    res: dict = c.line.post_image_by_url(
-                        message=message, image_url=choosen_items.stamp)
-                    logger.info(res)
+                try:
+                    choosen_items: Optional[ReplyModel] = send_reply(c, w, url)
+                except NoFormError as e:
+                    notify_fail(c, e)
+                    continue
+
+                if choosen_items is None:
+                    continue
+
+                logger.info('[success] proccessed.')
+                message: str = create_notify(choosen_items)
+                res: dict = c.line.post_image_by_url(
+                    message=message, image_url=choosen_items.stamp)
+                logger.info(res)
     except Exception as e:
         notify_fail(c, e)
         raise
