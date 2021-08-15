@@ -1,6 +1,8 @@
 import json
 from unittest.mock import Mock
 from requests.models import Response
+
+from env import env
 from main import start, ReplyModel
 from utils.line import Line
 from utils.mailer import Mailer
@@ -22,6 +24,7 @@ line_response.json.return_value = {'status': 'ok'}
 line_response.status_code = 200
 
 mail_obj = MockMailObj()
+
 
 @pytest.fixture(autouse=True)
 def mocked_object(mocker):

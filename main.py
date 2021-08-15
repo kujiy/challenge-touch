@@ -11,6 +11,7 @@ from typing import Optional
 import selenium
 from pydantic import BaseModel
 
+from env import env
 from utils.web import Web
 from utils.line import Line
 from utils.easyimap import MailObj
@@ -29,12 +30,12 @@ class AlreadyRepliedError(Exception):
 class Challenge:
     def __init__(self):
         self.mailer = Mailer(
-            host=os.getenv("MAIL_HOST", 'test'),
-            user=os.getenv("MAIL_USER", 'test'),
-            pw=os.getenv("MAIL_PASSWORD", 'test'),
-            mailbox=os.getenv("MAIL_BOX", 'test')
+            host=env.MAIL_HOST,
+            user=env.MAIL_USER,
+            pw=env.MAIL_PASSWORD,
+            mailbox=env.MAIL_BOX,
         )
-        self.line = Line(token=os.getenv("LINE_TOKEN", 'test'))
+        self.line = Line(token=env.LINE_TOKEN)
 
 
 def notify_new_emails(mails: list, c: Challenge):
@@ -120,7 +121,7 @@ def send_reply(c: Challenge, w: Web, url: str) -> Optional[ReplyModel]:
 
 
 def create_web_driver(headless: bool = False) -> Web:
-    return Web(os.getenv('CHROME_DRIVER_PATH'), headless=headless)
+    return Web(env.CHROME_DRIVER_PATH, headless=headless)
 
 def notify_fail(c: Challenge, e: Exception):
     c.line.post(message=f"failed: [{type(e)}] {str(e)} {sys.exc_info()} {traceback.extract_stack()}")
@@ -133,7 +134,7 @@ def start():
         mails: list = c.mailer.get(10)
         logger.info(f"--- received {len(mails)} mails  --------------- {datetime.datetime.now()}")
 
-        if os.environ.get('NO_NEWMAIL_NOTIFY') != 'True': # debug
+        if env.NO_NEWMAIL_NOTIFY: # debug
             try:
                 notify_new_emails(mails, c)
             except Exception as e:
@@ -148,8 +149,7 @@ def start():
         if len(urls) == 0:
             return
 
-        headless = False if os.getenv('CHROME_DRIVER_HEADLESS', None) == 'False' else True
-        with create_web_driver(headless) as w:
+        with create_web_driver(env.CHROME_DRIVER_HEADLESS) as w:
             sleep(3)
 
             for url in urls:
