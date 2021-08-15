@@ -45,21 +45,23 @@ class Web:
                 self.driver.find_element_by_class_name('sendBtn').find_element_by_tag_name('input').click()
             sleep(3)
 
+    def add_wisdom(self) -> None:
+        for name in ('free_message', 'messageInput'):
+            if self.exists_name(name):
+                self.driver.find_element_by_name(name).send_keys(f"""
+
+Today's Wisdom:
+
+{get_wisdom_text()}""")
+            sleep(1)
+
     def put_message(self, name: str) -> str:
         select = Select(self.driver.find_element_by_name(name))
         option_index = random.randint(0,len(select.options) - 1)
         select.select_by_index(option_index)
         sleep(1)
         # add a wisdom
-        if self.exists_name('free_message'):
-            self.driver.find_element_by_name('free_message').send_keys(f"""
-
-Today's Wisdom:
-
-{get_wisdom_text()}""")
-            sleep(1)
-            return self.driver.find_element_by_name('free_message').get_attribute('value')
-        sleep(0.5)
+        self.add_wisdom()
         return select.options[option_index].text
 
     def click_element(self, class_name: str) -> None:

@@ -56,11 +56,11 @@ def extract_ouen_urls(mails):
         logger.info(mail.title)
         # https://ouen-net.benesse.ne.jp/open/message?p=9r6BTOAQ0Vt_XgjUnrJiIShDgXAT0p5SKgHSOjRy-h78P8KTBlJ7hNmE9frLt28-W8BF64olvDr7sPmhlPB1n-2fLO1_fFkGsf9KUk8P5FvqHyeaa6ohd4t53-pH_qf3&utm_source=torikumi&utm_medium=email
         m = re.search(
-            r'(?P<url>https://ouen-net.benesse.ne.jp/open/(?P<_type>hato|message).+?)[\'"]', mail.body)
+            r'(?P<url>https://ouen-net.benesse.ne.jp/open/(?P<_type>hato|message).+?)[\'"\n]', mail.body)
         e = re.search(
-            r'(?P<url>https://mail-t.benesse.ne.jp/.+?\?.+?)[\'"]', mail.body)
+            r'(?P<url>https://mail-t.benesse.ne.jp/.+?\?.+?)[\'"\n]', mail.body)
         g = re.search(
-            r'(?P<url>https://ce.benesse.ne.jp/member/Goodjob.*?)[\'"]', mail.body)
+            r'(?P<url>https://ce.benesse.ne.jp/member/Goodjob.*?)[\'"\n]', mail.body)
         if m and "url" in m.groupdict():
             urls.append(m.group('url'))
         if e and "url" in e.groupdict():
@@ -104,7 +104,7 @@ def send_reply(c: Challenge, w: Web, url: str) -> Optional[ReplyModel]:
             elif w.exists_name("selectKaniComment"):
                 # flat page version
                 text = w.put_message("selectKaniComment")
-                stamp = w.choose_stamp_in_radio("iconImage", random.randint(1,4))
+                stamp = w.choose_stamp_in_radio("iconImage")
             else:
                 # no form exists OR a new form is found.
                 raise NoFormError(f'no form exists OR a new form is found on {url}')
@@ -142,6 +142,7 @@ def start():
         urls = extract_ouen_urls(mails)
         # urls = ['https://ouen-net.benesse.ne.jp/open/message/?p=9r6BTOAQ0Vt_XgjUnrJiIbP1IxzjarCLsVz6zPgNMqZZaZg074zmkXvBhvmGYaSWYhHdMwBB_MzWYmNh9vEiTwychnUE6mPcSELfjCAtOtRgrjWaPbd0JmevMWQw2RFo&utm_source=torikumi&utm_medium=email']
         # urls = ['https://ce.benesse.ne.jp/member/Goodjob'] # english
+        urls = ['https://ouen-net.benesse.ne.jp/open/hato/mail?p=9r6BTOAQ0Vt_XgjUnrJiIR122DwoYp2ciFDXUanjxr7DpubrQJHirUWcP5SdJvIqPIcv27pTvrrE9H_W6ZlALw'] # hato
         logger.info(f" found {len(urls)} urls")
 
         if len(urls) == 0:
