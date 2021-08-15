@@ -17,8 +17,6 @@ from utils.line import Line
 from utils.easyimap import MailObj
 from utils.mailer import Mailer
 from utils.logger import logger
-from dotenv import load_dotenv
-load_dotenv()
 
 class NoFormError(Exception):
     pass

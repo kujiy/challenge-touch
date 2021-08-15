@@ -14,4 +14,9 @@ class Env(BaseSettings):
 
     NO_NEWMAIL_NOTIFY: bool
 
+    class Config:
+        env_file = '.env'
+        env_file_encoding = 'utf-8'
+
+
 env = Env()
