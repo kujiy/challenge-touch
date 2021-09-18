@@ -102,7 +102,7 @@ def send_reply(c: Challenge, w: Web, url: str) -> Optional[ReplyModel]:
                 w.click_element("ouenmessage__selectStamp")
                 stamp = w.choose_stamp_in_modal("stampModalList", random.randint(1,4))
             elif w.exists_name("selectKaniComment"):
-                # flat page version
+                # flat page version / hato
                 text = w.put_message("selectKaniComment")
                 stamp = w.choose_stamp_in_radio("iconImage")
             else:
@@ -125,9 +125,9 @@ def notify_fail(c: Challenge, e: Exception):
     c.line.post(message=f"failed: [{type(e)}] {str(e)} {sys.exc_info()} {traceback.extract_stack()}")
 
 def start():
-    c = Challenge()
-
     try:
+        c = Challenge()
+
         # retrieve emails
         mails: list = c.mailer.get(10)
         logger.info(f"--- received {len(mails)} mails  --------------- {datetime.datetime.now()}")
@@ -142,7 +142,7 @@ def start():
         urls = extract_ouen_urls(mails)
         # urls = ['https://ouen-net.benesse.ne.jp/open/message/?p=9r6BTOAQ0Vt_XgjUnrJiIbP1IxzjarCLsVz6zPgNMqZZaZg074zmkXvBhvmGYaSWYhHdMwBB_MzWYmNh9vEiTwychnUE6mPcSELfjCAtOtRgrjWaPbd0JmevMWQw2RFo&utm_source=torikumi&utm_medium=email']
         # urls = ['https://ce.benesse.ne.jp/member/Goodjob'] # english
-        urls = ['https://ouen-net.benesse.ne.jp/open/hato/mail?p=9r6BTOAQ0Vt_XgjUnrJiIR122DwoYp2ciFDXUanjxr7DpubrQJHirUWcP5SdJvIqPIcv27pTvrrE9H_W6ZlALw'] # hato
+        # urls = ['https://ouen-net.benesse.ne.jp/open/hato/mail?p=9r6BTOAQ0Vt_XgjUnrJiIR122DwoYp2ciFDXUanjxr7DpubrQJHirUWcP5SdJvIqPIcv27pTvrrE9H_W6ZlALw'] # hato
         logger.info(f" found {len(urls)} urls")
 
         if len(urls) == 0:
