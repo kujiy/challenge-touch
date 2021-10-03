@@ -37,6 +37,10 @@
        * * * * * <path_to>/challenge-touch/venv/bin/python <path_to>/challenge-touch/main.py 2>&1 >> /tmp/challenge-touch.log
        ```
 
+# Chrome update
+1. https://chromedriver.chromium.org/downloads
+2. mv ~/Downloads/chromedriver ~/bin/
+3. Mac System Preference > Security 
 
 # 注意点
 python debugできる人じゃないと難しいと思います。特にimap周りは闇が深いです
