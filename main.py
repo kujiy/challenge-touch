@@ -2,11 +2,12 @@ import datetime
 import os
 import sys
 import re
+import time
 import traceback
 import base64
 import random
 from time import sleep
-from typing import Optional
+from typing import Optional, List
 
 import selenium
 from pydantic import BaseModel
@@ -18,12 +19,21 @@ from utils.easyimap import MailObj
 from utils.mailer import Mailer
 from utils.logger import logger
 
+
 class NoFormError(Exception):
     pass
+
+
 class ExpiredError(Exception):
     pass
+
+
 class AlreadyRepliedError(Exception):
     pass
+
+
+g_line = Line(token=env.LINE_TOKEN)
+
 
 class Challenge:
     def __init__(self):
@@ -50,8 +60,13 @@ def notify_new_emails(mails: list, c: Challenge):
                 # logger.info(res)
 
 
-def extract_ouen_urls(mails):
-    urls = []
+class ExtractedEmail(BaseModel):
+    title: str
+    url: str
+
+
+def extract_ouen_urls(mails) -> List[ExtractedEmail]:
+    extracted_email = []
     for mail in mails:
         logger.info(mail.title)
         # https://ouen-net.benesse.ne.jp/open/message?p=9r6BTOAQ0Vt_XgjUnrJiIShDgXAT0p5SKgHSOjRy-h78P8KTBlJ7hNmE9frLt28-W8BF64olvDr7sPmhlPB1n-2fLO1_fFkGsf9KUk8P5FvqHyeaa6ohd4t53-pH_qf3&utm_source=torikumi&utm_medium=email
@@ -62,19 +77,22 @@ def extract_ouen_urls(mails):
         g = re.search(
             r'(?P<url>https://ce.benesse.ne.jp/member/Goodjob.*?)[\'"\n]', mail.body)
         if m and "url" in m.groupdict():
-            urls.append(m.group('url'))
+            extracted_email.append(ExtractedEmail(title=mail.title, url=m.group('url')))
         if e and "url" in e.groupdict():
-            urls.append(e.group('url'))
+            extracted_email.append(ExtractedEmail(title=mail.title, url=e.group('url')))
         if g and "url" in g.groupdict():
-            urls.append(g.group('url'))
+            extracted_email.append(ExtractedEmail(title=mail.title, url=g.group('url')))
 
-    return urls
+    return extracted_email
+
 
 class ReplyModel(BaseModel):
     text: str
     stamp: Optional[str]
 
-def send_reply(c: Challenge, w: Web, url: str) -> Optional[ReplyModel]:
+
+def send_reply(w: Web, extracted_email: ExtractedEmail) -> Optional[ReplyModel]:
+    url: str = extracted_email.url
     try:
         # first page
         w.open(url)
@@ -97,10 +115,11 @@ def send_reply(c: Challenge, w: Web, url: str) -> Optional[ReplyModel]:
         else:
             # challenge touch
             if w.exists_name('open_messageActionForm'):
+                logger.info("mode=[open_messageActionForm]")
                 # modal version
                 text = w.put_message("messageTemplate")
                 w.click_element("ouenmessage__selectStamp")
-                stamp = w.choose_stamp_in_modal("stampModalList", random.randint(1,4))
+                stamp = w.choose_stamp_in_modal("stampModalList", random.randint(1, 4))
             elif w.exists_name("selectKaniComment"):
                 # flat page version / hato
                 text = w.put_message("selectKaniComment")
@@ -109,52 +128,69 @@ def send_reply(c: Challenge, w: Web, url: str) -> Optional[ReplyModel]:
                 # no form exists OR a new form is found.
                 raise NoFormError(f'no form exists OR a new form is found on {url}')
 
+            time.sleep(5)
             w.submit("confirm")
             # second page
             w.submit("send")
 
         return ReplyModel(text=text, stamp=stamp)
     except selenium.common.exceptions.NoSuchElementException as e:
-        logger.error(sys.exc_info(), traceback.extract_stack())
+        logger.error(extracted_email.title, sys.exc_info(), traceback.extract_stack())
 
 
 def create_web_driver(headless: bool = False) -> Web:
     return Web(env.CHROME_DRIVER_PATH, headless=headless)
 
+
 def notify_fail(c: Challenge, e: Exception):
     c.line.post(message=f"failed: [{type(e)}] {str(e)} {sys.exc_info()} {traceback.extract_stack()}")
 
+
+def print_and_line(msg):
+    logger.info(msg)
+    g_line.post(message=msg)
+
+
 def start():
     try:
-        c = Challenge()
+        create_web_driver(env.CHROME_DRIVER_HEADLESS)
+    except selenium.common.exceptions.SessionNotCreatedException as e:
+        print_and_line(f"""[ChromeWebDriverVersionError]
+        path= {env.CHROME_DRIVER_PATH}
+        url= https://chromedriver.chromium.org/downloads
+         {e}""")
+        sys.exit(1)
+
+    c = Challenge()
+    try:
 
         # retrieve emails
         mails: list = c.mailer.get(10)
         logger.info(f"--- received {len(mails)} mails  --------------- {datetime.datetime.now()}")
 
-        if env.NO_NEWMAIL_NOTIFY: # debug
+        if env.NEWMAIL_NOTIFY:  # set False when debug
             try:
                 notify_new_emails(mails, c)
             except Exception as e:
                 logger.error(
                     f"notify new email failed: {type(e)} e {str(e)}\n{traceback.print_exc()}")
 
-        urls = extract_ouen_urls(mails)
-        # urls = ['https://ouen-net.benesse.ne.jp/open/message/?p=9r6BTOAQ0Vt_XgjUnrJiIbP1IxzjarCLsVz6zPgNMqZZaZg074zmkXvBhvmGYaSWYhHdMwBB_MzWYmNh9vEiTwychnUE6mPcSELfjCAtOtRgrjWaPbd0JmevMWQw2RFo&utm_source=torikumi&utm_medium=email']
-        # urls = ['https://ce.benesse.ne.jp/member/Goodjob'] # english
-        # urls = ['https://ouen-net.benesse.ne.jp/open/hato/mail?p=9r6BTOAQ0Vt_XgjUnrJiIR122DwoYp2ciFDXUanjxr7DpubrQJHirUWcP5SdJvIqPIcv27pTvrrE9H_W6ZlALw'] # hato
-        logger.info(f" found {len(urls)} urls")
+        extracted_emails: List[ExtractedEmail] = extract_ouen_urls(mails)
+        # extracted_emails = ['https://ouen-net.benesse.ne.jp/open/message/?p=9r6BTOAQ0Vt_XgjUnrJiIbP1IxzjarCLsVz6zPgNMqZZaZg074zmkXvBhvmGYaSWYhHdMwBB_MzWYmNh9vEiTwychnUE6mPcSELfjCAtOtRgrjWaPbd0JmevMWQw2RFo&utm_source=torikumi&utm_medium=email']
+        # extracted_emails = ['https://ce.benesse.ne.jp/member/Goodjob'] # english
+        # extracted_emails = ['https://ouen-net.benesse.ne.jp/open/hato/mail?p=9r6BTOAQ0Vt_XgjUnrJiIR122DwoYp2ciFDXUanjxr7DpubrQJHirUWcP5SdJvIqPIcv27pTvrrE9H_W6ZlALw'] # hato
+        logger.info(f" found {len(extracted_emails)} extracted_emails")
 
-        if len(urls) == 0:
+        if len(extracted_emails) == 0:
             return
 
         with create_web_driver(env.CHROME_DRIVER_HEADLESS) as w:
             sleep(3)
 
-            for url in urls:
-                logger.info(url)
+            for mailset in extracted_emails:
+                logger.info(mailset)
                 try:
-                    choosen_items: Optional[ReplyModel] = send_reply(c, w, url)
+                    choosen_items: Optional[ReplyModel] = send_reply(w, mailset)
                 except NoFormError as e:
                     notify_fail(c, e)
                     continue
@@ -171,8 +207,8 @@ def start():
         notify_fail(c, e)
         raise
 
-def create_notify(item: ReplyModel) -> str:
 
+def create_notify(item: ReplyModel) -> str:
     return f"""
 メッセージありがとうございます！
 おへんじをおくったよ！
@@ -183,3 +219,4 @@ def create_notify(item: ReplyModel) -> str:
 
 if __name__ == "__main__":
     start()
+    logger.info('[Done]')

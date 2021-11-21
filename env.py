@@ -12,7 +12,8 @@ class Env(BaseSettings):
     MAIL_PASSWORD: str = 'test'
     MAIL_BOX: str = 'test'
 
-    NO_NEWMAIL_NOTIFY: bool
+    # set False when debug
+    NEWMAIL_NOTIFY: bool = True
 
     class Config:
         env_file = '.env'
