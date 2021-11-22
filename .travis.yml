@@ -7,11 +7,11 @@ python:
   - "nightly"  # nightly build
 # command to install dependencies
 env:
-    - NEWMAIL_NOTIFY=False
-    - LOGIN_ID="test"
-    - LOGIN_PW="test"
+  - NEWMAIL_NOTIFY=False
 install:
   - pip install -r requirements.txt
 # command to run tests
 script:
+  - export LOGIN_ID=test
+  - export LOGIN_PW=test
   - python -m pytest
