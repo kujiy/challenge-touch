@@ -8,8 +8,8 @@ python:
 # command to install dependencies
 env:
     - NEWMAIL_NOTIFY=False
-    - LOGIN_ID=test
-    - LOGIN_PW=test
+    - LOGIN_ID="test"
+    - LOGIN_PW="test"
 install:
   - pip install -r requirements.txt
 # command to run tests
