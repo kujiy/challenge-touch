@@ -222,6 +222,8 @@ def create_notify(item: ReplyModel) -> str:
 if __name__ == "__main__":
     try:
         start()
+    except selenium.common.exceptions.WebDriverException as e:
+        logger.error(e)
     except Exception as e:
         notify_fail(e, 'The whole process has been failed.')
         raise
