@@ -12,6 +12,10 @@ class Env(BaseSettings):
     MAIL_PASSWORD: str = 'test'
     MAIL_BOX: str = 'test'
 
+    # challenge login
+    LOGIN_ID: str # '1405xxxxx'
+    LOGIN_PW: str
+
     # set False when debug
     NEWMAIL_NOTIFY: bool = True
 

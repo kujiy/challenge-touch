@@ -9,6 +9,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.options import Options
 from time import sleep
 
+from env import env
 from utils.wisdom import get_wisdom_text
 
 
@@ -28,7 +29,7 @@ class Web:
 
     def open(self, url):
         self.driver.get(url)
-        sleep(3)
+        sleep(4)
 
     def has_replied(self):
         return re.match(r'.*(返信済み|送信済み).*', self.driver.page_source, re.S)
@@ -37,8 +38,8 @@ class Web:
 
     def login(self):
         if self.exists_name('usr_password'):
-            self.driver.find_element_by_name('usr_name').send_keys(os.getenv('LOGIN_ID'))
-            self.driver.find_element_by_name('usr_password').send_keys(os.getenv('LOGIN_PW'))
+            self.driver.find_element_by_name('usr_name').send_keys(env.LOGIN_ID)
+            self.driver.find_element_by_name('usr_password').send_keys(env.LOGIN_PW)
             if self.exists_id('loginButton'):
                 self.driver.find_element_by_id('loginButton').click()
             else:

@@ -113,6 +113,7 @@ def send_reply(w: Web, extracted_email: ExtractedEmail) -> Optional[ReplyModel]:
             # submit on the confirm page
             w.nested_submit('bottomBtn')
         else:
+            h1 = w.driver.find_element_by_tag_name("h1")
             # challenge touch
             if w.exists_name('open_messageActionForm'):
                 logger.info("mode=[open_messageActionForm]")
@@ -124,6 +125,9 @@ def send_reply(w: Web, extracted_email: ExtractedEmail) -> Optional[ReplyModel]:
                 # flat page version / hato
                 text = w.put_message("selectKaniComment")
                 stamp = w.choose_stamp_in_radio("iconImage")
+            elif 'カスタマイズ設定' in h1.text:
+                logger.info('[ExpectedError] no form')
+                return
             else:
                 # no form exists OR a new form is found.
                 raise NoFormError(f'no form exists OR a new form is found on {url}')
@@ -135,15 +139,16 @@ def send_reply(w: Web, extracted_email: ExtractedEmail) -> Optional[ReplyModel]:
 
         return ReplyModel(text=text, stamp=stamp)
     except selenium.common.exceptions.NoSuchElementException as e:
-        logger.error(extracted_email.title, sys.exc_info(), traceback.extract_stack())
+        logger.error(extracted_email.title, sys.exc_info(), traceback.format_exc())
+        notify_fail(e, extracted_email.title+sys.exc_info())
 
 
 def create_web_driver(headless: bool = False) -> Web:
     return Web(env.CHROME_DRIVER_PATH, headless=headless)
 
 
-def notify_fail(c: Challenge, e: Exception):
-    c.line.post(message=f"failed: [{type(e)}] {str(e)} {sys.exc_info()} {traceback.extract_stack()}")
+def notify_fail(e: Exception, msg: str = ""):
+    g_line.post(message=f'{msg}\n [{type(e)}]\n {str(e)}\n {sys.exc_info()}\n {traceback.format_exc()}')
 
 
 def print_and_line(msg):
@@ -162,8 +167,8 @@ def start():
         sys.exit(1)
 
     c = Challenge()
-    try:
 
+    if 1:
         # retrieve emails
         mails: list = c.mailer.get(10)
         logger.info(f"--- received {len(mails)} mails  --------------- {datetime.datetime.now()}")
@@ -192,7 +197,7 @@ def start():
                 try:
                     choosen_items: Optional[ReplyModel] = send_reply(w, mailset)
                 except NoFormError as e:
-                    notify_fail(c, e)
+                    notify_fail(e)
                     continue
 
                 if choosen_items is None:
@@ -203,9 +208,6 @@ def start():
                 res: dict = c.line.post_image_by_url(
                     message=message, image_url=choosen_items.stamp)
                 logger.info(res)
-    except Exception as e:
-        notify_fail(c, e)
-        raise
 
 
 def create_notify(item: ReplyModel) -> str:
@@ -218,5 +220,10 @@ def create_notify(item: ReplyModel) -> str:
 
 
 if __name__ == "__main__":
-    start()
+    try:
+        start()
+    except Exception as e:
+        notify_fail(e, 'The whole process has been failed.')
+        raise
+
     logger.info('[Done]')
