@@ -19,6 +19,8 @@ class Web:
         options = Options()
         if headless:
             options.add_argument('--headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
         self.driver = webdriver.Chrome(driver_path, options=options)
 
     def __enter__(self):
