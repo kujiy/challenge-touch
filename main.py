@@ -58,6 +58,13 @@ def notify_new_emails(mails: list, c: Challenge):
                 res = c.line.post_raw_image(
                     message=attachment[0], raw_image=attachment[1])
                 # logger.info(res)
+        if "お子さまからのメッセージ" in mail.body:
+            g_line.post(message=f'お子さまからのメッセージ: {mail.title}')
+            # TODO: 子供が送った画像をLINEしたい
+            # with create_web_driver(env.CHROME_DRIVER_HEADLESS) as w:
+            #     w.read_raw_html(mail.body)
+            #     images = w.driver.find_element_by_tag_name("img")
+            #     logger.info(images)
 
 
 class ExtractedEmail(BaseModel):
@@ -102,6 +109,10 @@ def send_reply(w: Web, extracted_email: ExtractedEmail) -> Optional[ReplyModel]:
             return
         if w.has_replied():
             logger.info('already replied.')
+            return
+
+        if w.driver.current_url == 'https://www.benesse.co.jp/hogosha/sho/counsel/':
+            logger.info('ooさんの週一連絡帳: no-message part.')
             return
 
         if w.exists_id('GoodjobIndex'):
@@ -195,6 +206,7 @@ def start():
             for mailset in extracted_emails:
                 logger.info(mailset)
                 try:
+                    g_line.post(message=f'new mail: {mailset.dict()}')
                     choosen_items: Optional[ReplyModel] = send_reply(w, mailset)
                 except NoFormError as e:
                     notify_fail(e)

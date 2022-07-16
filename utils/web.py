@@ -33,6 +33,11 @@ class Web:
         self.driver.get(url)
         sleep(4)
 
+    def read_raw_html(self, html: str):
+        self.driver.get("http://192.168.0.251/")
+        # TODO: JS実行方法が違う
+        # self.driver.executeScript("document.innerHTML = " + html);
+
     def has_replied(self):
         return re.match(r'.*(返信済み|送信済み).*', self.driver.page_source, re.S)
     def has_limited(self):
