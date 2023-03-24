@@ -45,8 +45,8 @@ class Web:
 
     def login(self):
         if self.exists_name('usr_password'):
-            self.driver.find_element_by_name('usr_name').send_keys(env.LOGIN_ID)
-            self.driver.find_element_by_name('usr_password').send_keys(env.LOGIN_PW)
+            self.driver.find_element("name", 'usr_name').send_keys(env.LOGIN_ID)
+            self.driver.find_element("name", 'usr_password').send_keys(env.LOGIN_PW)
             if self.exists_id('loginButton'):
                 self.driver.find_element_by_id('loginButton').click()
             else:
@@ -56,7 +56,7 @@ class Web:
     def add_wisdom(self) -> None:
         for name in ('free_message', 'messageInput'):
             if self.exists_name(name):
-                self.driver.find_element_by_name(name).send_keys(f"""
+                self.driver.find_element("name", name).send_keys(f"""
 
 Today's Wisdom:
 
@@ -64,7 +64,7 @@ Today's Wisdom:
             sleep(1)
 
     def put_message(self, name: str) -> str:
-        select = Select(self.driver.find_element_by_name(name))
+        select = Select(self.driver.find_element("name", name))
         option_index = random.randint(0,len(select.options) - 1)
         select.select_by_index(option_index)
         sleep(1)
@@ -115,7 +115,7 @@ Today's Wisdom:
         sleep(2)
 
     def submit(self, name: str):
-        self.driver.find_element_by_name(name).click()
+        self.driver.find_element("name", name).click()
         sleep(2)
 
     def close(self):
@@ -133,7 +133,7 @@ Today's Wisdom:
 
     def exists_name(self, name):
         try:
-            self.driver.find_element_by_name(name)
+            self.driver.find_element("name", name)
         except NoSuchElementException:
             return False
         return True
